@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Scene Prompt Formatter — SOFIN AI</title>
+<title>Scene Prompt Formatter — Phan Minh Đức</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
 <style>
 :root {
@@ -317,6 +317,48 @@ body::before {
 /* HIDDEN */
 .hidden { display: none !important; }
 
+/* TOGGLE */
+.toggle { position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+.toggle input { display:none; }
+.toggle-track {
+  width: 44px; height: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 99px;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+}
+.toggle input:checked + .toggle-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+  background: #0c0c0e;
+}
+
+.btn-remove {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-remove:hover { background: rgba(255,79,79,0.12); color: var(--danger); border-color: var(--danger); }
+
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -329,10 +371,10 @@ body::before {
 
   <header class="header">
     <div class="logo">
-      <span class="logo-tag">SOFIN AI // Tool</span>
+      <span class="logo-tag"Phan Minh Đức // Tool</span>
       <h1 class="logo-title">Scene Prompt <span>Formatter</span></h1>
     </div>
-    <div class="header-badge">v1.1.0</div>
+    <div class="header-badge">v1.4.0</div>
   </header>
 
   <!-- STEP 1 -->
@@ -366,8 +408,39 @@ body::before {
     </div>
   </div>
 
-  <!-- STEP 2 -->
-  <div class="step-label">02 — Import File .txt</div>
+  <!-- STEP 1.5 FIND & REPLACE -->
+  <div class="step-label">02 — Tìm &amp; Thay Thế (tuỳ chọn)</div>
+  <div class="card" id="replaceCard">
+    <div id="replaceRows" style="display:flex;flex-direction:column;gap:10px;">
+      <div class="replace-row" style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:center;">
+        <input type="text" class="style-input find-input" placeholder='Từ cần thay, ví dụ: Victorian' />
+        <span style="font-family:var(--mono);font-size:14px;color:var(--accent);padding:0 4px;">→</span>
+        <input type="text" class="style-input replace-input" placeholder='Thay bằng, ví dụ: Futuristic' />
+        <button class="btn-remove" onclick="removeReplaceRow(this)" title="Xoá">✕</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="addReplaceRow()" style="padding:6px 14px;font-size:12px;">+ Thêm dòng</button>
+    </div>
+  </div>
+
+  <!-- STEP 2.5 FIND & DELETE -->
+  <div class="step-label">03 — Tìm &amp; Xoá (tuỳ chọn)</div>
+  <div class="card" id="deleteCard">
+    <div id="deleteRows" style="display:flex;flex-direction:column;gap:10px;">
+      <div class="delete-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+        <input type="text" class="style-input delete-input" placeholder='Cụm từ cần xoá, ví dụ: --ar 16:9' />
+        <button class="btn-remove" onclick="removeDeleteRow(this)" title="Xoá dòng">✕</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:12px;">
+      <button class="btn btn-ghost" onclick="addDeleteRow()" style="padding:6px 14px;font-size:12px;">+ Thêm dòng</button>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">Cụm từ sẽ bị xoá hoàn toàn khỏi mọi scene</span>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-label">04 — Import File .txt</div>
   <div class="card">
     <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" accept=".txt,.TXT" />
@@ -385,7 +458,7 @@ body::before {
 
   <!-- RESULTS -->
   <div id="resultsSection" class="hidden">
-    <div class="step-label">03 — Kết Quả</div>
+    <div class="step-label">05 — Kết Quả</div>
 
     <div class="stats-row">
       <div class="stat-box active">
@@ -399,6 +472,19 @@ body::before {
       <div class="stat-box" id="statStyleBox">
         <div class="stat-num" id="statStyle">—</div>
         <div class="stat-lbl">Style</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">Bỏ nhãn [Scene X] khỏi output</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Mỗi dòng sẽ chỉ chứa nội dung prompt thuần, không có tiêu đề scene</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="stripLabelToggle" onchange="if(rawText) buildOutput(rawText)" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
       </div>
     </div>
 
@@ -456,6 +542,80 @@ dropZone.addEventListener('drop', e => {
 [styleInput, ref1Input, ref2Input, ref3Input].forEach(el => {
   el.addEventListener('input', () => { if (rawText) buildOutput(rawText); });
 });
+
+// Live update for replace rows (delegated)
+document.getElementById('replaceRows').addEventListener('input', () => {
+  if (rawText) buildOutput(rawText);
+});
+
+// Live update for delete rows (delegated)
+document.getElementById('deleteRows').addEventListener('input', () => {
+  if (rawText) buildOutput(rawText);
+});
+
+function getReplaceRules() {
+  const rows = document.querySelectorAll('.replace-row');
+  const rules = [];
+  rows.forEach(row => {
+    const find = row.querySelector('.find-input').value.trim();
+    const rep  = row.querySelector('.replace-input').value.trim();
+    if (find) rules.push({ find, rep });
+  });
+  return rules;
+}
+
+function addReplaceRow() {
+  const container = document.getElementById('replaceRows');
+  const div = document.createElement('div');
+  div.className = 'replace-row';
+  div.style = 'display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" class="style-input find-input" placeholder='Từ cần thay' />
+    <span style="font-family:var(--mono);font-size:14px;color:var(--accent);padding:0 4px;">→</span>
+    <input type="text" class="style-input replace-input" placeholder='Thay bằng' />
+    <button class="btn-remove" onclick="removeReplaceRow(this)" title="Xoá">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeReplaceRow(btn) {
+  const rows = document.querySelectorAll('.replace-row');
+  if (rows.length <= 1) {
+    btn.closest('.replace-row').querySelectorAll('input').forEach(i => i.value = '');
+    if (rawText) buildOutput(rawText);
+    return;
+  }
+  btn.closest('.replace-row').remove();
+  if (rawText) buildOutput(rawText);
+}
+
+function getDeleteTerms() {
+  return Array.from(document.querySelectorAll('.delete-input'))
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+function addDeleteRow() {
+  const container = document.getElementById('deleteRows');
+  const div = document.createElement('div');
+  div.className = 'delete-row';
+  div.style = 'display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" class="style-input delete-input" placeholder='Cụm từ cần xoá' />
+    <button class="btn-remove" onclick="removeDeleteRow(this)" title="Xoá dòng">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeDeleteRow(btn) {
+  const rows = document.querySelectorAll('.delete-row');
+  if (rows.length <= 1) {
+    btn.closest('.delete-row').querySelector('input').value = '';
+    if (rawText) buildOutput(rawText);
+    return;
+  }
+  btn.closest('.delete-row').remove();
+  if (rawText) buildOutput(rawText);
+}
 
 function handleFile(file) {
   if (!file.name.match(/\.txt$/i)) { showToast('⚠ Chỉ nhận file .txt', true); return; }
@@ -517,9 +677,17 @@ function buildOutput(text) {
   const suffix = [...refs, style].filter(Boolean).join(' ');
   const scenes = parseScenes(text);
 
+  const rules = getReplaceRules();
+  const deleteTerms = getDeleteTerms();
+  const stripLabel = document.getElementById('stripLabelToggle').checked;
+
   parsedLines = scenes.map(s => {
-    const body = s.parts.join(' ');
-    return suffix ? `${s.label} ${body} + ${suffix}` : `${s.label} ${body}`;
+    let body = s.parts.join(' ');
+    rules.forEach(r => { body = body.split(r.find).join(r.rep); });
+    deleteTerms.forEach(term => { body = body.split(term).join(''); });
+    body = body.replace(/\s{2,}/g, ' ').trim();
+    const prefix = stripLabel ? '' : `${s.label} `;
+    return suffix ? `${prefix}${body} + ${suffix}` : `${prefix}${body}`;
   });
 
   // Update UI
@@ -572,6 +740,20 @@ function resetTool() {
   ref1Input.value = '';
   ref2Input.value = '';
   ref3Input.value = '';
+  // Reset replace rows - keep 1 empty row
+  const container = document.getElementById('replaceRows');
+  container.innerHTML = `<div class="replace-row" style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:center;">
+    <input type="text" class="style-input find-input" placeholder='Từ cần thay, ví dụ: Victorian' />
+    <span style="font-family:var(--mono);font-size:14px;color:var(--accent);padding:0 4px;">→</span>
+    <input type="text" class="style-input replace-input" placeholder='Thay bằng, ví dụ: Futuristic' />
+    <button class="btn-remove" onclick="removeReplaceRow(this)" title="Xoá">✕</button>
+  </div>`;
+  const delContainer = document.getElementById('deleteRows');
+  delContainer.innerHTML = `<div class="delete-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+    <input type="text" class="style-input delete-input" placeholder='Cụm từ cần xoá, ví dụ: --ar 16:9' />
+    <button class="btn-remove" onclick="removeDeleteRow(this)" title="Xoá dòng">✕</button>
+  </div>`;
+  document.getElementById('stripLabelToggle').checked = false;
   document.getElementById('fileName').classList.add('hidden');
   document.getElementById('resultsSection').classList.add('hidden');
   showToast('↺ Đã reset tool');
