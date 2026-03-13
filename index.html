@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Scene Prompt Formatter — Phan Minh Đức</title>
+<title>Scene Prompt Formatter — SOFIN AI</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
 <style>
 :root {
@@ -329,15 +329,30 @@ body::before {
 
   <header class="header">
     <div class="logo">
-      <span class="logo-tag">Phan Minh Đức // Tool</span>
+      <span class="logo-tag">SOFIN AI // Tool</span>
       <h1 class="logo-title">Scene Prompt <span>Formatter</span></h1>
     </div>
-    <div class="header-badge">v1.0.0</div>
+    <div class="header-badge">v1.1.0</div>
   </header>
 
   <!-- STEP 1 -->
-  <div class="step-label">01 — Nhập Style</div>
+  <div class="step-label">01 — Nhập Style & References</div>
   <div class="card">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Ref 1</div>
+        <input type="text" id="ref1Input" class="style-input" style="width:100%" placeholder="ví dụ: --cref URL" />
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Ref 2</div>
+        <input type="text" id="ref2Input" class="style-input" style="width:100%" placeholder="ví dụ: --sref URL" />
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Ref 3</div>
+        <input type="text" id="ref3Input" class="style-input" style="width:100%" placeholder="ví dụ: --sw 100" />
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Style</div>
     <div class="style-row">
       <input
         type="text"
@@ -346,8 +361,8 @@ body::before {
         placeholder="ví dụ: cinematic 4k ultra detailed, volumetric lighting --style raw --v 6.1"
       />
     </div>
-    <div style="margin-top:8px; font-family: var(--mono); font-size:11px; color: var(--muted);">
-      Style sẽ được append vào cuối mỗi scene: <span style="color:var(--accent2)">... RATIO: 16:9 + ${style}</span>
+    <div style="margin-top:10px; font-family: var(--mono); font-size:11px; color: var(--muted);">
+      Output: <span style="color:var(--accent2)">... RATIO: 16:9 + [ref1] [ref2] [ref3] ${style}</span> — bỏ trống ref nào thì bỏ qua ref đó
     </div>
   </div>
 
@@ -419,6 +434,9 @@ let rawText = '';
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const styleInput = document.getElementById('styleInput');
+const ref1Input = document.getElementById('ref1Input');
+const ref2Input = document.getElementById('ref2Input');
+const ref3Input = document.getElementById('ref3Input');
 
 // File input
 fileInput.addEventListener('change', e => {
@@ -434,9 +452,9 @@ dropZone.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
-// Style live update
-styleInput.addEventListener('input', () => {
-  if (rawText) buildOutput(rawText);
+// Live update on any input change
+[styleInput, ref1Input, ref2Input, ref3Input].forEach(el => {
+  el.addEventListener('input', () => { if (rawText) buildOutput(rawText); });
 });
 
 function handleFile(file) {
@@ -495,11 +513,13 @@ function parseScenes(text) {
 
 function buildOutput(text) {
   const style = styleInput.value.trim();
+  const refs = [ref1Input.value.trim(), ref2Input.value.trim(), ref3Input.value.trim()].filter(Boolean);
+  const suffix = [...refs, style].filter(Boolean).join(' ');
   const scenes = parseScenes(text);
 
   parsedLines = scenes.map(s => {
     const body = s.parts.join(' ');
-    return style ? `${s.label} ${body} + ${style}` : `${s.label} ${body}`;
+    return suffix ? `${s.label} ${body} + ${suffix}` : `${s.label} ${body}`;
   });
 
   // Update UI
@@ -508,7 +528,6 @@ function buildOutput(text) {
   document.getElementById('statStyle').textContent = style ? '✓' : '—';
   document.getElementById('statStyleBox').style.borderColor = style ? 'var(--accent2)' : '';
 
-  // Preview (highlight scene tags)
   const preview3 = parsedLines.slice(0, 3).join('\n\n');
   const previewBox = document.getElementById('previewBox');
   previewBox.textContent = preview3 || '(chưa nhận được dữ liệu scene)';
@@ -535,7 +554,6 @@ function copyAll() {
   navigator.clipboard.writeText(parsedLines.join('\n')).then(() => {
     showToast('✓ Đã copy ' + parsedLines.length + ' dòng vào clipboard');
   }).catch(() => {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = parsedLines.join('\n');
     document.body.appendChild(ta);
@@ -551,6 +569,9 @@ function resetTool() {
   parsedLines = [];
   fileInput.value = '';
   styleInput.value = '';
+  ref1Input.value = '';
+  ref2Input.value = '';
+  ref3Input.value = '';
   document.getElementById('fileName').classList.add('hidden');
   document.getElementById('resultsSection').classList.add('hidden');
   showToast('↺ Đã reset tool');
