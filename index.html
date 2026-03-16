@@ -206,7 +206,7 @@ body::before {
       <textarea
         id="pasteArea"
         class="paste-textarea"
-        placeholder="Dán nội dung vào đây...&#10;&#10;Ví dụ:&#10;[Scene 1]&#10;IMAGE PROMPT: Wide aerial shot...&#10;NEGATIVE PROMPT: text, watermark...&#10;RATIO: 16:9&#10;&#10;[Scene 2]&#10;IMAGE PROMPT: ..."
+        placeholder="Mỗi dòng là 1 prompt, ví dụ:&#10;&#10;Wide aerial shot, Victorian mansion, cinematic lighting --ar 16:9&#10;Medium shot, black armored SUV, moody atmosphere --ar 16:9&#10;Macro shot, digital interface, glowing data lines --ar 16:9"
       ></textarea>
       <div class="paste-actions">
         <button class="btn btn-primary btn-sm" onclick="processPaste()">▶ Xử lý</button>
@@ -306,7 +306,7 @@ function processPaste() {
   const text = pasteArea.value.trim();
   if (!text) { showToast('⚠ Chưa có nội dung!'); return; }
   rawText = text;
-  showProgress(() => buildOutput(rawText));
+  showProgress(() => buildOutputLines(rawText));
 }
 
 function clearPaste() {
@@ -317,10 +317,22 @@ function clearPaste() {
 }
 
 [styleInput, ref1Input, ref2Input, ref3Input].forEach(el => {
-  el.addEventListener('input', () => { if (rawText) buildOutput(rawText); });
+  el.addEventListener('input', () => {
+    if (!rawText) return;
+    if (document.getElementById('tabPaste').classList.contains('active')) buildOutputLines(rawText);
+    else buildOutput(rawText);
+  });
 });
-document.getElementById('replaceRows').addEventListener('input', () => { if (rawText) buildOutput(rawText); });
-document.getElementById('deleteRows').addEventListener('input', () => { if (rawText) buildOutput(rawText); });
+document.getElementById('replaceRows').addEventListener('input', () => {
+  if (!rawText) return;
+  if (document.getElementById('tabPaste').classList.contains('active')) buildOutputLines(rawText);
+  else buildOutput(rawText);
+});
+document.getElementById('deleteRows').addEventListener('input', () => {
+  if (!rawText) return;
+  if (document.getElementById('tabPaste').classList.contains('active')) buildOutputLines(rawText);
+  else buildOutput(rawText);
+});
 
 function getReplaceRules() {
   const rules = [];
@@ -403,6 +415,30 @@ function parseScenes(text) {
     if (parts.length) scenes.push({ label, parts });
   }
   return scenes;
+}
+
+function buildOutputLines(text) {
+  const style = styleInput.value.trim();
+  const refs = [ref1Input.value.trim(), ref2Input.value.trim(), ref3Input.value.trim()].filter(Boolean);
+  const suffix = [...refs, style].filter(Boolean).join(' ');
+  const rules = getReplaceRules();
+  const deleteTerms = getDeleteTerms();
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  parsedLines = lines.map(line => {
+    rules.forEach(r => { line = line.split(r.find).join(r.rep); });
+    deleteTerms.forEach(term => { line = line.split(term).join(''); });
+    line = line.replace(/\s{2,}/g, ' ').trim();
+    return suffix ? `${line} + ${suffix}` : line;
+  });
+
+  document.getElementById('statScenes').textContent = lines.length;
+  document.getElementById('statLines').textContent = parsedLines.length;
+  document.getElementById('statStyle').textContent = style ? '✓' : '—';
+  document.getElementById('statStyleBox').style.borderColor = style ? 'var(--accent2)' : '';
+  document.getElementById('previewBox').textContent = parsedLines.slice(0, 3).join('\n\n') || '(chưa có dữ liệu)';
+  document.getElementById('resultsSection').classList.remove('hidden');
 }
 
 function buildOutput(text) {
